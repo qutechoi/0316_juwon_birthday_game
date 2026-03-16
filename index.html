@@ -93,6 +93,52 @@
     let spawnTimer = 0;
     let last = 0;
 
+    // WebAudio SFX
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playCakeBell() {
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const master = audioCtx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.16, now + 0.01);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+      master.connect(audioCtx.destination);
+
+      [1046.5, 1318.5, 1568].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.01);
+        g.gain.setValueAtTime(0.18 / (i + 1), now);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+        osc.connect(g);
+        g.connect(master);
+        osc.start(now + i * 0.01);
+        osc.stop(now + 0.5);
+      });
+    }
+
+    function playBadBuzz() {
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.linearRampToValueAtTime(150, now + 0.18);
+      g.gain.setValueAtTime(0.14, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    }
+
     function reset() {
       score = 0; timeLeft = 20; items.length = 0;
       player.x = W/2; running = true; last = performance.now();
@@ -207,8 +253,13 @@
         drawItem(it);
 
         if (hit(it)) {
-          if (it.type === 'cake') score += 10;
-          else score = Math.max(0, score - 15);
+          if (it.type === 'cake') {
+            score += 10;
+            playCakeBell();
+          } else {
+            score = Math.max(0, score - 15);
+            playBadBuzz();
+          }
           scoreEl.textContent = score;
           items.splice(i,1);
           continue;
@@ -232,6 +283,7 @@
     }
 
     function start() {
+      ensureAudio();
       overlay.style.display = 'none';
       reset();
       loop._secRef = 0;
