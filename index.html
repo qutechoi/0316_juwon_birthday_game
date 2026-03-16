@@ -43,7 +43,7 @@
     <div class="panel">
       <h1>🎉 최주원의 생일 케이크 러너 🎉</h1>
       <p>좌우 이동하며 <b>케이크(🎂)</b>를 모으고, <b>숙제(📚)</b>는 피해봐!</p>
-      <p>45초 동안 최대 점수 도전 💪</p>
+      <p>20초 동안 최대 점수 도전 💪</p>
       <button id="startBtn">게임 시작</button>
       <p style="font-size:13px; opacity:.75; margin-top:12px;">PC: ← → / A D · 모바일: 화면 좌우 탭</p>
     </div>
@@ -54,7 +54,7 @@
     <p>아빠가 만든 생일 게임 — 오늘의 주인공 모드 ON!</p>
     <div class="hud">
       <div class="badge">점수: <span id="score">0</span></div>
-      <div class="badge">남은 시간: <span id="time">45</span>s</div>
+      <div class="badge">남은 시간: <span id="time">20</span>s</div>
       <div class="badge">최고 점수: <span id="best">0</span></div>
     </div>
     <canvas id="game" width="900" height="480"></canvas>
@@ -80,12 +80,12 @@
     const player = { x: W/2, y: laneY, w: 60, h: 60, speed: 8 };
     const items = [];
     const keys = { left:false, right:false };
-    let timeLeft = 45;
+    let timeLeft = 20;
     let spawnTimer = 0;
     let last = 0;
 
     function reset() {
-      score = 0; timeLeft = 45; items.length = 0;
+      score = 0; timeLeft = 20; items.length = 0;
       player.x = W/2; running = true; last = performance.now();
       scoreEl.textContent = score; timeEl.textContent = timeLeft;
     }
@@ -183,7 +183,7 @@
 
       drawPlayer();
 
-      if (Math.floor((45000 - (ts - (performance.timeOrigin ? performance.now()-ts : 0))) / 1000));
+      if (Math.floor((20000 - (ts - (performance.timeOrigin ? performance.now()-ts : 0))) / 1000));
 
       if (!loop._secRef) loop._secRef = ts;
       if (ts - loop._secRef >= 1000) {
