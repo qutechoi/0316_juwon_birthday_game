@@ -80,6 +80,11 @@
     const player = { x: W/2, y: laneY, w: 60, h: 60, speed: 8 };
     const items = [];
     const keys = { left:false, right:false };
+    const stars = Array.from({ length: 35 }, (_, i) => ({
+      x: (i * 57) % W,
+      y: (i * 23) % 240 + 12,
+      a: 0.2 + (i % 5) * 0.08
+    }));
     let timeLeft = 20;
     let spawnTimer = 0;
     let last = 0;
@@ -104,25 +109,30 @@
     function drawBackground() {
       ctx.fillStyle = '#0b1225'; ctx.fillRect(0,0,W,H);
       ctx.fillStyle = '#1f2937'; ctx.fillRect(0, laneY+45, W, 40);
-      for (let i=0;i<35;i++) {
-        ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.5})`;
-        ctx.fillRect((i*57 + (Date.now()/40)%57)%W, (i*23)%240+12, 2, 2);
+      const drift = (Date.now() / 80) % W;
+      for (const s of stars) {
+        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+        ctx.fillRect((s.x + drift) % W, s.y, 2, 2);
       }
     }
 
     function drawPlayer() {
       ctx.font = '54px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🧑‍🚀', player.x, player.y);
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('🧑‍🚀', Math.round(player.x), Math.round(player.y));
       ctx.font = '16px sans-serif';
       ctx.fillStyle = '#fde68a';
-      ctx.fillText('주원', player.x, player.y + 26);
+      ctx.fillText('주원', Math.round(player.x), Math.round(player.y + 26));
     }
 
     function drawItem(it) {
       ctx.font = '34px serif';
       ctx.textAlign = 'center';
-      ctx.fillText(it.type === 'cake' ? '🎂' : '📚', it.x, it.y);
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(it.type === 'cake' ? '🎂' : '📚', Math.round(it.x), Math.round(it.y));
     }
 
     function hit(it) {
@@ -150,6 +160,8 @@
         overlay.style.display = 'none';
         overlay.innerHTML = '';
         reset();
+        loop._secRef = 0;
+        requestAnimationFrame(loop);
       };
     }
 
@@ -183,7 +195,7 @@
 
       drawPlayer();
 
-      if (Math.floor((20000 - (ts - (performance.timeOrigin ? performance.now()-ts : 0))) / 1000));
+      // timer tick handled by loop._secRef below
 
       if (!loop._secRef) loop._secRef = ts;
       if (ts - loop._secRef >= 1000) {
