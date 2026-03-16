@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>최주원의 생일 케이크 러너 🎂</title>
+  <style>
+    :root { --bg1:#0f172a; --bg2:#1e1b4b; --accent:#f59e0b; --good:#22c55e; --bad:#ef4444; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family: ui-rounded, "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #312e81 0%, #111827 45%, #0b1020 100%);
+      color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    }
+    .wrap { width:min(920px, 96vw); }
+    h1 { margin: 0 0 10px; font-size: clamp(22px, 3.8vw, 40px); }
+    p { margin: 6px 0; opacity:.95; }
+    .card {
+      background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+      border-radius: 18px; padding: 16px; backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    canvas { width:100%; max-width:900px; height:auto; background: linear-gradient(#0b1225, #111827); border-radius:14px; display:block; }
+    .hud { display:flex; gap:14px; flex-wrap:wrap; margin:12px 0 8px; }
+    .badge { background: rgba(0,0,0,.28); padding:8px 12px; border-radius: 999px; font-weight:700; }
+    .controls { font-size:14px; opacity:.9; }
+    button {
+      border:0; background: var(--accent); color:#1f2937; font-weight:800;
+      padding:10px 14px; border-radius:10px; cursor:pointer; margin-top:10px;
+    }
+    #overlay {
+      position: fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.55); z-index:10; text-align:center; padding:20px;
+    }
+    #overlay .panel {
+      max-width: 680px; background:#0b1225; border:1px solid rgba(255,255,255,.16);
+      border-radius:16px; padding:24px;
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="panel">
+      <h1>🎉 최주원의 생일 케이크 러너 🎉</h1>
+      <p>좌우 이동하며 <b>케이크(🎂)</b>를 모으고, <b>숙제(📚)</b>는 피해봐!</p>
+      <p>45초 동안 최대 점수 도전 💪</p>
+      <button id="startBtn">게임 시작</button>
+      <p style="font-size:13px; opacity:.75; margin-top:12px;">PC: ← → / A D · 모바일: 화면 좌우 탭</p>
+    </div>
+  </div>
+
+  <div class="wrap card">
+    <h1>최주원, 생일 축하해! 🥳</h1>
+    <p>아빠가 만든 생일 게임 — 오늘의 주인공 모드 ON!</p>
+    <div class="hud">
+      <div class="badge">점수: <span id="score">0</span></div>
+      <div class="badge">남은 시간: <span id="time">45</span>s</div>
+      <div class="badge">최고 점수: <span id="best">0</span></div>
+    </div>
+    <canvas id="game" width="900" height="480"></canvas>
+    <p class="controls">조작: ← → 또는 A / D (모바일은 화면 왼쪽/오른쪽 터치)</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const bestEl = document.getElementById('best');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+
+    const W = canvas.width, H = canvas.height;
+    const laneY = H - 70;
+    let running = false;
+    let score = 0;
+    let best = Number(localStorage.getItem('juwon_bday_best') || 0);
+    bestEl.textContent = best;
+
+    const player = { x: W/2, y: laneY, w: 60, h: 60, speed: 8 };
+    const items = [];
+    const keys = { left:false, right:false };
+    let timeLeft = 45;
+    let spawnTimer = 0;
+    let last = 0;
+
+    function reset() {
+      score = 0; timeLeft = 45; items.length = 0;
+      player.x = W/2; running = true; last = performance.now();
+      scoreEl.textContent = score; timeEl.textContent = timeLeft;
+    }
+
+    function spawn() {
+      const isCake = Math.random() > 0.33;
+      items.push({
+        x: Math.random() * (W - 40) + 20,
+        y: -30,
+        v: 3 + Math.random() * 3.2,
+        r: 22,
+        type: isCake ? 'cake' : 'book'
+      });
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = '#0b1225'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(0, laneY+45, W, 40);
+      for (let i=0;i<35;i++) {
+        ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.5})`;
+        ctx.fillRect((i*57 + (Date.now()/40)%57)%W, (i*23)%240+12, 2, 2);
+      }
+    }
+
+    function drawPlayer() {
+      ctx.font = '54px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🧑‍🚀', player.x, player.y);
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = '#fde68a';
+      ctx.fillText('주원', player.x, player.y + 26);
+    }
+
+    function drawItem(it) {
+      ctx.font = '34px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(it.type === 'cake' ? '🎂' : '📚', it.x, it.y);
+    }
+
+    function hit(it) {
+      const px = player.x, py = player.y-24;
+      return Math.hypot(px - it.x, py - it.y) < 36;
+    }
+
+    function endGame() {
+      running = false;
+      if (score > best) {
+        best = score;
+        localStorage.setItem('juwon_bday_best', String(best));
+        bestEl.textContent = best;
+      }
+      overlay.innerHTML = `
+        <div class="panel">
+          <h1>🎉 게임 종료! 🎉</h1>
+          <p><b>최주원</b>의 점수: <b>${score}</b></p>
+          <p>생일 정말 축하해! 오늘은 네가 주인공이다 👑</p>
+          <button id="restartBtn">다시 하기</button>
+        </div>
+      `;
+      overlay.style.display = 'flex';
+      document.getElementById('restartBtn').onclick = () => {
+        overlay.style.display = 'none';
+        overlay.innerHTML = '';
+        reset();
+      };
+    }
+
+    function loop(ts) {
+      const dt = Math.min(33, ts - last); last = ts;
+      if (!running) return;
+
+      drawBackground();
+
+      if (keys.left) player.x -= player.speed;
+      if (keys.right) player.x += player.speed;
+      player.x = Math.max(30, Math.min(W-30, player.x));
+
+      spawnTimer += dt;
+      if (spawnTimer > 420) { spawn(); spawnTimer = 0; }
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.y += it.v;
+        drawItem(it);
+
+        if (hit(it)) {
+          if (it.type === 'cake') score += 10;
+          else score = Math.max(0, score - 15);
+          scoreEl.textContent = score;
+          items.splice(i,1);
+          continue;
+        }
+        if (it.y > H + 30) items.splice(i,1);
+      }
+
+      drawPlayer();
+
+      if (Math.floor((45000 - (ts - (performance.timeOrigin ? performance.now()-ts : 0))) / 1000));
+
+      if (!loop._secRef) loop._secRef = ts;
+      if (ts - loop._secRef >= 1000) {
+        loop._secRef += 1000;
+        timeLeft -= 1;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) return endGame();
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    function start() {
+      overlay.style.display = 'none';
+      reset();
+      loop._secRef = 0;
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', e => {
+      if (['ArrowLeft','a','A'].includes(e.key)) keys.left = true;
+      if (['ArrowRight','d','D'].includes(e.key)) keys.right = true;
+    });
+    window.addEventListener('keyup', e => {
+      if (['ArrowLeft','a','A'].includes(e.key)) keys.left = false;
+      if (['ArrowRight','d','D'].includes(e.key)) keys.right = false;
+    });
+    canvas.addEventListener('touchstart', e => {
+      const x = e.touches[0].clientX;
+      const mid = window.innerWidth / 2;
+      if (x < mid) keys.left = true; else keys.right = true;
+    });
+    canvas.addEventListener('touchend', () => { keys.left = false; keys.right = false; });
+
+    startBtn.onclick = start;
+  </script>
+</body>
+</html>
