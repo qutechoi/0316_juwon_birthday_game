@@ -77,7 +77,11 @@
     let best = Number(localStorage.getItem('juwon_bday_best') || 0);
     bestEl.textContent = best;
 
-    const player = { x: W/2, y: laneY, w: 60, h: 60, speed: 8 };
+    const player = { x: W/2, y: laneY, w: 78, h: 78, speed: 8 };
+    const playerImg = new Image();
+    playerImg.src = './assets/juwon-character.jpg';
+    let playerImgLoaded = false;
+    playerImg.onload = () => { playerImgLoaded = true; };
     const items = [];
     const keys = { left:false, right:false };
     const stars = Array.from({ length: 35 }, (_, i) => ({
@@ -117,14 +121,34 @@
     }
 
     function drawPlayer() {
-      ctx.font = '54px serif';
+      const x = Math.round(player.x - player.w / 2);
+      const y = Math.round(player.y - player.h / 2 - 4);
+
+      if (playerImgLoaded) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(x, y, player.w, player.h, 14);
+        ctx.clip();
+        ctx.drawImage(playerImg, x, y, player.w, player.h);
+        ctx.restore();
+
+        // outline for visibility
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, player.w, player.h);
+      } else {
+        // fallback while image loads
+        ctx.font = '54px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('🧑‍🚀', Math.round(player.x), Math.round(player.y));
+      }
+
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('🧑‍🚀', Math.round(player.x), Math.round(player.y));
       ctx.font = '16px sans-serif';
       ctx.fillStyle = '#fde68a';
-      ctx.fillText('주원', Math.round(player.x), Math.round(player.y + 26));
+      ctx.fillText('주원', Math.round(player.x), Math.round(player.y + 46));
     }
 
     function drawItem(it) {
